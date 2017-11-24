@@ -1,12 +1,16 @@
+import os
 import cPickle
 import numpy as np
 from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
 
 class AveragedPerceptron:
-    def __init__(self, max_iter=15, n_classes=4, lr=1e-3):
+    def __init__(self, max_iter=15, n_classes=4, lr=5e-3):
         self.max_iter = max_iter
         self.n_classes = n_classes
         self.lr = lr
+        self.paren_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+        self.util_path = os.path.join(self.paren_path, 'data', 'utils')
 
     def predict(self, x):
         x_pred = np.dot(self.W, np.append(x, 1))
@@ -28,7 +32,7 @@ class AveragedPerceptron:
         self.Wc[y_true] += self.lr * cnt * extend_x
         self.Wc[y_pred] -= self.lr * cnt * extend_x
 
-    def fit(self, X, y):
+    def fit(self, X, y, X_valid=None, y_valid=None):
         """
         fit data to the classifier
         :param X: input data, [n_samples x D-dimension], float32
@@ -46,6 +50,8 @@ class AveragedPerceptron:
         self.Wc = np.zeros_like(self.W)
 
         cnt = 1
+        best_train_scores = []
+        best_valid_scores = []
         for i in range(0, self.max_iter):
             correct_pred = 0
             rand_order = np.random.permutation(n_samples)
@@ -58,11 +64,16 @@ class AveragedPerceptron:
                     self.update_W(cnt, x=x_, y_true=y_, y_pred=y_pred)
                 cnt += 1
             acc = float(correct_pred) / n_samples
+            best_train_scores += [acc]
             print 'Iteration %d: acc = %f' % (i+1, acc*100)
+            if not X_valid is None and not y_valid is None:
+                best_valid_scores += [self.evaluate(X_valid, y_valid)]
 
         self.W -= 1.0 / cnt * self.Wc
 
     def evaluate(self, X, y):
+        if isinstance(X, list):
+            X = np.asarray(X, dtype=np.float32)
         n_samples, d = X.shape
         acc = 0.0
         for n in range(n_samples):
@@ -72,19 +83,24 @@ class AveragedPerceptron:
                 acc += 1.0
         acc /= n_samples
         print 'Predict accuracy = %f' % (acc * 100)
+        return acc
 
-    def save_weight(self):
-        self.W.dump("W.npy")
+    def save_weight(self, lang, embed_name):
+        out_path = os.path.join(self.util_path, lang, embed_name + "_weight.npy")
+        self.W.dump(out_path)
 
-    def load_weight(self):
-        self.W = np.load("W.npy")
+    def load_weight(self, lang, embed_name):
+        in_path = os.path.join(self.util_path, lang, embed_name + "_weight.npy")
+        self.W = np.load(in_path)
 
 def train():
-    clf = AveragedPerceptron(max_iter=50)
-    X, y = make_classification(150, 20, n_informative=4, n_classes=4, n_clusters_per_class=4)
-    clf.fit(X, y)
-    clf.evaluate(X, y)
-    clf.save_weight()
+    clf = AveragedPerceptron(max_iter=10)
+    X, y = make_classification(1500, 50, n_informative=4, n_classes=4, n_clusters_per_class=4)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
+    clf.fit(X_train, y_train, X_test, y_test)
+    # clf.evaluate(X_train, y_train)
+    # clf.evaluate(X_test, y_test)
+    clf.save_weight("test","test")
 
 if __name__ == "__main__":
     train()
