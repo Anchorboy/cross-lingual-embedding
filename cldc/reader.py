@@ -30,12 +30,12 @@ class Reader:
             idf_dict = json.load(f)
         return idf_dict
 
-    def load_I_matrix_embed(self, lang1, lang2, folder_name):
+    def load_embed(self, lang1, lang2, embed_name, folder_name):
         code1, code2 = self.country_code[lang1], self.country_code[lang2]
-        embed_path = os.path.join(self.embed_path, 'I-Matrix', folder_name)
+        embed_path = os.path.join(self.embed_path, embed_name, folder_name)
 
-        l1 = folder_name.split('.')[0] + '.' + code2
-        l2 = folder_name.split('.')[0] + '.' + code1
+        l1 = folder_name.split('.')[0] + '.' + code1
+        l2 = folder_name.split('.')[0] + '.' + code2
 
         def load_lang_embed(embed_path, l):
             with open(os.path.join(embed_path, l), "r") as f:
@@ -63,15 +63,16 @@ class Reader:
             pbar = tqdm(X)
             for i, sent in enumerate(pbar):
                 cnt = 0
-                for wd in sent.split():
+                sent = sent.split()
+                for wd in sent:
                     if wd in word_dict:
                         if wd in idf:
                             vector[i, :] += idf[wd] * embed_mat[word_dict[wd], :]
-                        else:
-                            vector[i, :] += embed_mat[word_dict[wd], :]
+                        # else:
+                        #     vector[i, :] += embed_mat[word_dict[wd], :]
                         cnt += 1
 
-                pbar.set_description("%d / %d, counted / total words" % (cnt, len(sent.split())))
+                pbar.set_description("%d / %d, counted / total words" % (cnt, len(sent)))
                 # if i % 1000 == 0: print "%d / %d , counted words / total words" % (cnt, len(sent.split()))
 
             vectors += [vector]
@@ -97,42 +98,9 @@ class Reader:
 
         return train_X, train_y, test_X, test_y, valid_X, valid_y
 
-    def run_I_matrix(self, lang1, lang2, folder_name):
-        # --- read files for language 1
-        # logger.info('read language1')
-        train_X1, train_y1, test_X1, test_y1, valid_X1, valid_y1 = self.read_files(lang1)
-        idf1 = self.read_idf(lang1)
-
-        # --- read files for language 2
-        # logger.info('read language2')
-        train_X2, train_y2, test_X2, test_y2, valid_X2, valid_y2 = self.read_files(lang2)
-        idf2 = self.read_idf(lang2)
-
-        # --- read embedding
-        # logger.info('read embedding')
-        word_dict1, embed_mat1, word_dict2, embed_mat2 = self.load_I_matrix_embed(lang1, lang2, folder_name)
-
-        # --- vectorize language 1
-        # logger.info('vectorize language 1')
-        train_X1, test_X1, valid_X1 = self.vectorize([train_X1, test_X1, valid_X1], idf1, word_dict1, embed_mat1)
-        # test_X1 = self.vectorize(test_X1, idf1, word_dict1, embed_mat1)
-        # valid_X1 = self.vectorize(valid_X1, idf1, word_dict1, embed_mat1)
-
-        # --- vectorize language 2
-        # logger.info('vectorize language 2')
-        train_X2, test_X2, valid_X2 = self.vectorize([train_X2, test_X2, valid_X2], idf1, word_dict1, embed_mat1)
-        # train_X2 = self.vectorize(train_X2, idf2, word_dict2, embed_mat2)
-        # test_X2 = self.vectorize(test_X2, idf2, word_dict2, embed_mat2)
-        # valid_X2 = self.vectorize(valid_X2, idf2, word_dict2, embed_mat2)
-
-        # --- train model
-
-
-
 def test_reading_embed():
     reader = Reader()
     # reader.load_I_matrix_embed('german', 'english', 'de-en.40')
-    reader.run_I_matrix('german', 'english', 'de-en.40')
 
 if __name__ == "__main__":
     # reader = Reader()

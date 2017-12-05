@@ -46,10 +46,16 @@ class AveragedPerceptron:
         n_samples, d = X.shape
 
         # init weight, bias
-        self.W = np.zeros(shape=(self.n_classes, d + 1))
-        self.Wc = np.zeros_like(self.W)
+        if not hasattr(self, 'W'):
+            self.W = np.zeros(shape=(self.n_classes, d + 1))
+        else:
+            self.W += 1.0 / self.cnt * self.Wc
 
-        cnt = 1
+        if not hasattr(self, 'Wc'):
+            self.Wc = np.zeros_like(self.W)
+
+        if not hasattr(self, 'cnt'):
+            self.cnt = 1
         best_train_scores = []
         best_valid_scores = []
         for i in range(0, self.max_iter):
@@ -61,15 +67,16 @@ class AveragedPerceptron:
                 if y_pred == y_:
                     correct_pred += 1
                 else:
-                    self.update_W(cnt, x=x_, y_true=y_, y_pred=y_pred)
-                cnt += 1
+                    self.update_W(self.cnt, x=x_, y_true=y_, y_pred=y_pred)
+                self.cnt += 1
             acc = float(correct_pred) / n_samples
             best_train_scores += [acc]
             print 'Iteration %d: acc = %f' % (i+1, acc*100)
+
             if not X_valid is None and not y_valid is None:
                 best_valid_scores += [self.evaluate(X_valid, y_valid)]
 
-        self.W -= 1.0 / cnt * self.Wc
+        self.W -= 1.0 / self.cnt * self.Wc
 
     def evaluate(self, X, y):
         if isinstance(X, list):
