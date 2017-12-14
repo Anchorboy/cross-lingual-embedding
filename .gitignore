@@ -1,6 +1,8 @@
 # Data
 data/
 bae/results/
+bae/bak/
+*/results/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

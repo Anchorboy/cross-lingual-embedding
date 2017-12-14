@@ -7,12 +7,14 @@ class Config:
     information parameters. Model objects are passed a Config() object at
     instantiation.
     """
-    vocab_size = 30000
+    vocab_size = 50000
+    vocab_size1 = None
+    vocab_size2 = None
     dropout = 0.667
     hidden_size = 256
     mini_batch = 20
     batch_size = 64
-    n_epochs = 20
+    n_epochs = 2
     lr = 0.001
     lamda = 4.
     beta = 1.
@@ -22,7 +24,7 @@ class Config:
         self.lang2 = args.lang2
         self.embed_size = args.dim
 
-        if "model_path" in args:
+        if args.model_path is not None:
             # Where to save things.
             self.output_path = args.model_path
         else:

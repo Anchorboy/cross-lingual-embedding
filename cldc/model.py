@@ -32,7 +32,7 @@ class AveragedPerceptron:
         self.Wc[y_true] += self.lr * cnt * extend_x
         self.Wc[y_pred] -= self.lr * cnt * extend_x
 
-    def fit(self, X, y, X_valid=None, y_valid=None):
+    def fit(self, X, y, X_valid=None, y_valid=None, verbose=False):
         """
         fit data to the classifier
         :param X: input data, [n_samples x D-dimension], float32
@@ -71,14 +71,17 @@ class AveragedPerceptron:
                 self.cnt += 1
             acc = float(correct_pred) / n_samples
             best_train_scores += [acc]
-            print 'Iteration %d: acc = %f' % (i+1, acc*100)
+            if verbose:
+                print 'Iteration %d: acc = %f' % (i+1, acc*100)
 
             if not X_valid is None and not y_valid is None:
                 best_valid_scores += [self.evaluate(X_valid, y_valid)]
 
         self.W -= 1.0 / self.cnt * self.Wc
+        return best_train_scores, best_valid_scores
 
-    def evaluate(self, X, y):
+
+    def evaluate(self, X, y, verbose=False):
         if isinstance(X, list):
             X = np.asarray(X, dtype=np.float32)
         n_samples, d = X.shape
@@ -89,7 +92,8 @@ class AveragedPerceptron:
             if y_pred == y_:
                 acc += 1.0
         acc /= n_samples
-        print 'Predict accuracy = %f' % (acc * 100)
+        if verbose:
+            print 'Predict accuracy = %f' % (acc * 100)
         return acc
 
     def save_weight(self, lang, embed_name):
