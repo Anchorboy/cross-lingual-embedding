@@ -15,8 +15,9 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 class Reader:
-    def __init__(self, vocab_size=30000):
-        self.paren_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+    def __init__(self, args, vocab_size=30000):
+        # self.paren_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+        self.paren_path = args.folder_path
         self.data_path = os.path.join(self.paren_path, 'data', 'RCV2_merged')
         self.util_path = os.path.join(self.paren_path, 'data', 'utils')
         self.embed_path = os.path.join(self.paren_path, 'data', 'embedding')
@@ -31,14 +32,15 @@ class Reader:
             idf_dict = json.load(f)
         return idf_dict
 
-    def load_embed(self, embed_name1, embed_name2, folder_name):
+    def load_embed(self, embed_path1, embed_path2):
         # code1, code2 = self.country_code[lang1], self.country_code[lang2]
-        embed_path = os.path.join(self.embed_path, folder_name)
+        # embed_path = os.path.join(self.embed_path, folder_name)
         # l1 = folder_name.split('.')[0] + '.' + code1
         # l2 = folder_name.split('.')[0] + '.' + code2
 
-        def load_lang_embed(embed_path, embed_name):
-            with open(os.path.join(embed_path, embed_name), "r") as f:
+        def load_lang_embed(embed_path):
+            # with open(os.path.join(embed_path, embed_name), "r") as f:
+            with open(embed_path, "r") as f:
                 word_dict = {}
                 embed_mat = []
                 for i, line in enumerate(f):
@@ -48,8 +50,8 @@ class Reader:
 
             return word_dict, np.asarray(embed_mat, dtype=np.float32)
 
-        word_dict1, embed_mat1 = load_lang_embed(embed_path, embed_name1)
-        word_dict2, embed_mat2 = load_lang_embed(embed_path, embed_name2)
+        word_dict1, embed_mat1 = load_lang_embed(embed_path1)
+        word_dict2, embed_mat2 = load_lang_embed(embed_path2)
         return word_dict1, embed_mat1, word_dict2, embed_mat2
 
     def vectorize(self, Xs, idf, word_dict, embed_mat):

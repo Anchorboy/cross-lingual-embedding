@@ -16,6 +16,7 @@ class Config:
     batch_size = 64
     n_epochs = 2
     lr = 0.001
+    rr = 0.001
     lamda = 4.
     beta = 1.
 

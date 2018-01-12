@@ -16,6 +16,10 @@ from util.config import Config
 from scipy import sparse
 from nltk.tokenize import word_tokenize
 
+def load_npy(args):
+    prep = Preprocessing(args)
+    # prep.read_bilingual_data()
+    return prep.load_npy()
 
 def dump_word_embedding(embed_mat1, embed_mat2, vocab_table1, vocab_table2, model_path, lang1, lang2):
     W_x = embed_mat1
@@ -43,27 +47,31 @@ def dump_word_embedding(embed_mat1, embed_mat2, vocab_table1, vocab_table2, mode
 
 class Preprocessing:
     def __init__(self, args):
+        self.args = args
         self.config = Config
-        self.paren_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
-        self.embed_path = os.path.join(self.paren_path, 'data', 'embedding')
-        self.data_path = os.path.join(self.paren_path, 'data', args.data_name)
-        self.util_path = os.path.join(self.paren_path, 'data', 'utils')
+        # self.paren_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
+        self.paren_path = args.data_path
+        self.embed_path = os.path.join(self.paren_path, 'embedding')
+        self.data_path = os.path.join(self.paren_path, args.data_name)
+        self.util_path = os.path.join(self.paren_path, 'utils')
         self.country_code = {'english': 'en', 'chinese': 'zh', 'french': 'fr', 'german': 'de', 'italian': 'it',
                              'spanish': 'es'}
         self.toks = {'start': 0, 'stop': 1, 'unk': 2}
-        self.lang1 = None
-        self.lang2 = None
-        self.folder_name = None
+        self.lang1 = args.lang1
+        self.lang2 = args.lang2
+        self.folder_name = args.folder_name
         self.embed_name = None
 
-    def read_bilingual_data(self, lang1, lang2, folder_name):
-        self.lang1 = lang1
-        self.lang2 = lang2
-        self.folder_name = folder_name
-        code1, code2 = self.country_code[lang1], self.country_code[lang2]
-        in_path = os.path.join(self.data_path, folder_name)
-        f1 = os.path.join(in_path, 'train.tags.' + folder_name + '.' + code1)
-        f2 = os.path.join(in_path, 'train.tags.' + folder_name + '.' + code2)
+    def read_bilingual_data(self):
+        # lang1 = self.lang1
+        # lang2 = self.lang2
+        # folder_name = self.folder_name
+        # code1, code2 = self.country_code[lang1], self.country_code[lang2]
+        # input_path = os.path.join(self.data_path, folder_name)
+        # f1 = os.path.join(input_path, self.args.file1)
+        # f2 = os.path.join(input_path, self.args.file2)
+        f1 = self.args.file1
+        f2 = self.args.file2
 
         with open(f1, 'r', encoding='utf8') as f:
             text1 = f.readlines()
@@ -74,45 +82,6 @@ class Preprocessing:
         assert len(text1) == len(text2)
         self.text1 = text1
         self.text2 = text2
-
-    def read_bilingual_data_folders(self, lang1, lang2, folder_name1, folder_name2):
-        self.lang1 = lang1
-        self.lang2 = lang2
-        self.folder_name = folder_name1 + '-' + folder_name2
-        self.text1 = []
-        self.text2 = []
-        # code1, code2 = self.country_code[lang1], self.country_code[lang2]
-        input_path1 = os.path.join(self.data_path, folder_name1)
-        input_path2 = os.path.join(self.data_path, folder_name2)
-        dir_list = os.listdir(input_path1)
-        for i in dir_list:
-            f1 = os.path.join(input_path1, i)
-            f2 = os.path.join(input_path2, i)
-            if not os.path.exists(f2): continue
-            
-            # print(i)
-            text1 = []
-            text2 = []
-            with open(f1, 'r', encoding='utf8') as f:
-                for line in f.readlines():
-                    line = line.strip()
-                    if len(line) == 0 or line == '<P>':
-                        continue
-                    text1 += [line]
-            with open(f2, 'r', encoding='utf8') as f:
-                for line in f.readlines():
-                    line = line.strip()
-                    if len(line) == 0 or line == '<P>':
-                        continue
-                    text2 += [line]
-            if len(text1) == len(text2):
-                self.text1 += text1
-                self.text2 += text2
-            else:
-                print(i, len(text1), len(text2))
-
-        # 必須是平行的語料
-        assert len(self.text1) == len(self.text2)
 
     def cut_chinese(self):
         in_path = os.path.join(self.data_path, 'en-zh')
@@ -126,9 +95,9 @@ class Preprocessing:
 
     def build_vocab_table(self):
         code1, code2 = self.country_code[self.lang1], self.country_code[self.lang2]
-        in_path = os.path.join(self.data_path, self.folder_name)
-        f1 = os.path.join(in_path, code1 + '_vocab.json')
-        f2 = os.path.join(in_path, code2 + '_vocab.json')
+        input_path = os.path.join(self.data_path, self.folder_name)
+        f1 = os.path.join(input_path, code1 + '_vocab.json')
+        f2 = os.path.join(input_path, code2 + '_vocab.json')
 
         counter1 = collections.Counter()
         counter2 = collections.Counter()
@@ -140,7 +109,7 @@ class Preprocessing:
         with open(f2, "w", encoding='utf8') as f:
             json.dump(dict([(j[0], i) for i, j in enumerate(counter2.most_common(self.config.vocab_size))]), f)
 
-    def build_vocab(self, lang1, lang2, embed_name, folder_name):
+    def build_vocab(self, embed_name, folder_name):
         """
         function用來讀取之前模型給出的embedding以及對應的vocab table
         :param lang1:
@@ -149,7 +118,7 @@ class Preprocessing:
         :param folder_name:
         :return:
         """
-        code1, code2 = self.country_code[lang1], self.country_code[lang2]
+        code1, code2 = self.country_code[self.lang1], self.country_code[self.lang2]
         embed_path = os.path.join(self.embed_path, embed_name, folder_name)
         input_path = os.path.join(self.data_path, folder_name)
         f1 = os.path.join(input_path, code1 + '_vocab.json')
@@ -250,6 +219,7 @@ class Preprocessing:
 
         assert len(l1) == len(l2)
 
+        # create a(x)
         ll = int(len(l1) / self.config.mini_batch) + 1 \
             if len(l1) % self.config.mini_batch != 0 \
             else int(len(l1) /  self.config.mini_batch)
@@ -264,8 +234,8 @@ class Preprocessing:
             a1 += [t1]
             a2 += [t2]
         
-        with open(f1 + '_csr.plk', "wb") as f: pickle.dump(sparse.csr_matrix(np.asarray(a1, dtype=np.int32)), f)
-        with open(f2 + '_csr.plk', "wb") as f: pickle.dump(sparse.csr_matrix(np.asarray(a2, dtype=np.int32)), f)
+        with open(f1 + '_csr.pkl', "wb") as f: pickle.dump(sparse.csr_matrix(np.asarray(a1, dtype=np.int32)), f)
+        with open(f2 + '_csr.pkl', "wb") as f: pickle.dump(sparse.csr_matrix(np.asarray(a2, dtype=np.int32)), f)
         with open(pf, "w", encoding='utf8') as f:
             params = {'vocab_size1': self.config.vocab_size1, 
                             'vocab_size2': self.config.vocab_size2,
@@ -289,10 +259,10 @@ class Preprocessing:
         pf = os.path.join(in_path, 'npy', 'params.json')
         with open(pf, "r", encoding='utf8') as f:
             config = json.load(f)
-        with open(f1 + '_csr.plk', "rb") as f: 
+        with open(f1 + '_csr.pkl', "rb") as f:
             a1 = pickle.load(f)
             a1 = a1.todense()
-        with open(f2 + '_csr.plk', "rb") as f: 
+        with open(f2 + '_csr.pkl', "rb") as f:
             a2 = pickle.load(f)
             a2 = a2.todense()
         vocab_f1 = os.path.join(in_path, code1 + '_vocab.json')
@@ -304,17 +274,10 @@ class Preprocessing:
 
         return config, (a1, a2), (vocab_table1, vocab_table2)
 
-def load_npy(args):
-    prep = Preprocessing(args)
-    prep.read_bilingual_data(args.lang1, args.lang2, args.folder_name)
-    return prep.load_npy()
-
 def run(args):
     prep = Preprocessing(args)
-    if args.read == 't':
-        prep.read_bilingual_data(args.lang1, args.lang2, args.folder_name)
-    elif args.read == 'f':
-        prep.read_bilingual_data_folders(args.lang1, args.lang2, args.folder_name1, args.folder_name2)
+    prep.read_bilingual_data()
+    
     # build vocab
     if args.mode == '1':
         prep.build_vocab_table()
@@ -327,13 +290,13 @@ if __name__ == "__main__":
     parser.add_argument('-l1', '--lang1', default='english', help='Language 1.')
     parser.add_argument('-l2', '--lang2', default='spanish', help='Language 2.')
     parser.add_argument('-f', '--folder_name', default='en-zh', help='Folder name.')
-    parser.add_argument('-d', '--data_name', default='ted_2015', help='Using what data.')
+    parser.add_argument('-f1', '--file1', default='en-fr.en', help='Language 1.')
+    parser.add_argument('-f2', '--file2', default='en-fr.fr', help='Language 2.')
+    parser.add_argument('-dp', '--data_path', default='D:/Program/Git/data/', help='Folder name.')
+    parser.add_argument('-dn', '--data_name', default='ted_2015', help='Data name.')
     parser.add_argument('-e1', '--embed_name1', default='en-es.en', help='Embedding name 1.')
     parser.add_argument('-e2', '--embed_name2', default='en-es.es', help='Embedding name 2.')
     parser.add_argument('-m', '--mode', default='1', help='Train in what order')
-    parser.add_argument('-r', '--read', default='t', help='t = single text, f = folder')
-    parser.add_argument('-f1', '--folder_name1', default='en', help='Folder name1. only in reading folder mode')
-    parser.add_argument('-f2', '--folder_name2', default='de', help='Folder name2. only in reading folder mode')
     args = parser.parse_args()
 
     run(args)

@@ -1,7 +1,6 @@
 # Data
 data/
-bae/results/
-bae/bak/
+*/bak/
 */results/
 
 # Byte-compiled / optimized / DLL files
